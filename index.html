@@ -3,23 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CryptoBot</title>
+<title>CryptoBot Pro V4</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
   body{
     font-family:'Inter',sans-serif;
     margin:0; padding:0;
     display:flex; flex-direction:column; height:100vh;
-    background:#0f1115; color:#fff;
+    background:#111A23; color:#fff;
   }
   header{
-    background:#0b0c0f;
+    background:#252D3A;
     color:#fff;
     padding:1rem;
     font-size:1.6rem;
     font-weight:600;
-    text-align:center;
+    text-align:left;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
     box-shadow:0 2px 6px rgba(0,0,0,0.5);
+    position:relative;
+  }
+  #menu-btn{
+    background:none;
+    border:none;
+    color:#fff;
+    font-size:1.5rem;
+    cursor:pointer;
+    padding:0 0.5rem;
+  }
+  #dropdown-menu{
+    display:none;
+    position:absolute;
+    right:1rem; top:3rem;
+    background:#252D3A;
+    border:1px solid #333;
+    border-radius:6px;
+    padding:0.5rem 0;
+    z-index:10;
+    box-shadow:0 2px 6px rgba(0,0,0,0.4);
+  }
+  #dropdown-menu button{
+    display:block;
+    width:100%;
+    background:none;
+    border:none;
+    color:#fff;
+    padding:0.5rem 1rem;
+    text-align:left;
+    cursor:pointer;
+  }
+  #dropdown-menu button:hover{
+    background:#1f6feb;
   }
   #chat-container{
     flex:1;
@@ -29,9 +65,11 @@
     flex-direction:column;
     gap:0.6rem;
     scroll-behavior:smooth;
+    min-height:200px;
   }
   .message{
     max-width:70%;
+    min-height:24px;
     padding:0.8rem 1rem;
     border-radius:14px;
     word-wrap:break-word;
@@ -54,7 +92,7 @@
     display:flex;
     padding:0.6rem;
     border-top:1px solid #222;
-    background:#0b0c0f;
+    background:#111A23;
   }
   #user-input{
     flex:1;
@@ -81,7 +119,7 @@
     background:#3399ff;
   }
   .option-btn{
-    background:#1f6feb;
+    background: rgba(36,48,62,0.7);
     color:#fff;
     border:none;
     border-radius:20px;
@@ -102,6 +140,9 @@
     flex-wrap:wrap;
     gap:0.4rem;
     max-width:600px;
+    background:none; /* quita el cuadro feo */
+    padding:0;
+    margin-top:8px;
   }
   .prob-bar-container{
     width:100%;
@@ -118,12 +159,11 @@
     width:0%;
     transition:width 1s ease-in-out;
   }
-  /* Scrollbar estilizado */
   #chat-container::-webkit-scrollbar{
     width:8px;
   }
   #chat-container::-webkit-scrollbar-track{
-    background:#0b0c0f;
+    background:#111A23;
   }
   #chat-container::-webkit-scrollbar-thumb{
     background:#333;
@@ -132,8 +172,18 @@
 </style>
 </head>
 <body>
-<header>CryptoBot</header>
+<header>
+  CryptoBot Pro V4
+  <div>
+    <button id="menu-btn">⋮</button>
+    <div id="dropdown-menu">
+      <button id="new-chat-btn">New chat</button>
+    </div>
+  </div>
+</header>
+
 <div id="chat-container"></div>
+
 <div id="input-container">
   <input type="text" id="user-input" placeholder="Escribe tu mensaje...">
   <button id="send-btn">Enviar</button>
@@ -143,6 +193,9 @@
 const chatContainer=document.getElementById("chat-container");
 const userInput=document.getElementById("user-input");
 const sendBtn=document.getElementById("send-btn");
+const menuBtn=document.getElementById("menu-btn");
+const dropdownMenu=document.getElementById("dropdown-menu");
+const newChatBtn=document.getElementById("new-chat-btn");
 
 let step="start";
 let currentMarket=null;
@@ -153,14 +206,25 @@ const activos={
   "Stock":["Tesla","Apple","Microsoft","Amazon","Google","Facebook","NVIDIA","Netflix","AMD","Intel","Coca-Cola","PepsiCo","Disney","Adobe","Visa","MasterCard","Pfizer","Nike","McDonald's","eBay"]
 };
 
+// Toggle dropdown
+menuBtn.addEventListener("click",()=>{dropdownMenu.style.display = dropdownMenu.style.display==="block"?"none":"block";});
+
+// Reiniciar chat
+newChatBtn.addEventListener("click",()=>{
+  chatContainer.innerHTML="";
+  step="start";
+  currentMarket=null;
+  addMessage('Hola, soy CryptoBot Pro V4. Escribe "/start" para comenzar.', 'bot');
+  dropdownMenu.style.display="none";
+});
+
+// Funciones principales
 function addMessage(text,sender){
   const msg=document.createElement("div");
   msg.classList.add("message",sender);
   chatContainer.appendChild(msg);
   chatContainer.scrollTop=chatContainer.scrollHeight;
-
   if(sender==="bot"){
-    // efecto typing
     let i=0;
     const interval=setInterval(()=>{
       if(i>=text.length){ clearInterval(interval); return; }
@@ -174,7 +238,7 @@ function addMessage(text,sender){
 
 function addButtons(options,onClick){
   const wrapper=document.createElement("div");
-  wrapper.classList.add("bot","buttons-grid");
+  wrapper.classList.add("buttons-grid");
   options.forEach((opt,i)=>{
     const btn=document.createElement("button");
     btn.classList.add("option-btn");
@@ -212,15 +276,13 @@ function startAnalysis(asset){
   setTimeout(()=>{
     clearInterval(interval);
     loadingMsg.remove();
-    const result=Math.random()<0.5?"📈 Subirá":"📉 Bajará";
-    const prob=Math.floor(Math.random()*5+48); 
-    addMessage(`Resultado del bot: ${result}`,"bot");
-    showProbBar(prob);
+    addMessage(`Resultado del bot: ${Math.random()<0.5?"📈 Subirá":"📉 Bajará"}`,"bot");
+    showProbBar(Math.floor(Math.random()*5+48));
     step="restart";
     setTimeout(()=>{
       addMessage("¿Quieres analizar otro activo?","bot");
       addButtons(["Sí","No"],handleRestart);
-    },800);
+    },500);
   },2500);
 }
 
@@ -247,7 +309,7 @@ function handleRestart(choice){
 
 function sendMessage(){
   const text=userInput.value.trim();
-  if(!text)return;
+  if(!text) return;
   addMessage(text,"user");
   userInput.value="";
   if(step==="start" && text.toLowerCase()==="/start"){
@@ -259,10 +321,14 @@ function sendMessage(){
   }
 }
 
+// Listeners
 sendBtn.addEventListener("click",sendMessage);
 userInput.addEventListener("keydown",e=>{if(e.key==="Enter")sendMessage();});
 
-addMessage('Hola, soy CryptoBot. Escribe "/start" para comenzar.', 'bot');
+// Mensaje inicial al cargar la página
+window.addEventListener("load", ()=>{
+    addMessage('Hola, soy CryptoBot Pro V4. Escribe "/start" para comenzar.', 'bot');
+});
 </script>
 </body>
 </html>
